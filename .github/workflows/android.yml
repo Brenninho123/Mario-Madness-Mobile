@@ -1,0 +1,54 @@
+name: Build Android
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.2.5
+
+      - name: Install Haxelib
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install flixel 5.5.0
+          haxelib install flixel-addons 3.2.1
+          haxelib install flixel-ui 2.5.0
+          haxelib install lime 8.0.2
+          haxelib install openfl 9.3.3
+          haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git
+          haxelib git lime-samples https://github.com/mcpro24/lime-samples.git
+          haxelib git linc_luajit https://github.com/neoneurowe/linc_luajit.git
+          haxelib git extension-androidtools https://github.com/MAJESTY-Development/extension-androidtools.git
+          haxelib list
+
+      - name: Configure Android SDK
+        run: |
+          haxelib run lime setup android
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
+
+      - name: Build APK
+        run: haxelib run lime build android -release
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MarioMadness-Android
+          path: export/release/android/bin/app/build/outputs/apk/release/*.apk
+          
