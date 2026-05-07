@@ -9,8 +9,19 @@ import openfl.Assets;
 import openfl.Lib;
 import openfl.display.FPS;
 import openfl.display.Sprite;
+import openfl.display.StageScaleMode;
 import openfl.events.Event;
+import openfl.events.FocusEvent;
 import openfl.system.System;
+import lime.system.System as LimeSystem;
+
+#if mobile
+import mobile.backend.MobileScaleMode;
+#if android
+import mobile.backend.StorageUtil;
+#end
+#end
+
 #if cpp
 import cpp.vm.Gc;
 #elseif hl
@@ -21,67 +32,99 @@ import java.vm.Gc;
 import neko.vm.Gc;
 #end
 
-class Main extends Sprite {
-	public static var initialState:Class<FlxState> = TitleState; // The FlxState the game starts with.
-	public static var gameWidth:Int = initialState == TitleState ? 921 : 1280; // Width of the game in pixels (might be less / more in actual pixels depending on your zoom).
-	public static var gameHeight:Int = initialState == TitleState ? 691 : 720; // Height of the game in pixels (might be less / more in actual pixels depending on your zoom).
-	var zoom:Float = -1; // If -1, zoom is automatically calculated to fit the window dimensions.
-	var framerate:Int = 60; // How many frames per second the game should run at.
-	var skipSplash:Bool = true; // Whether to skip the flixel splash screen that appears in release mode.
-	var startFullscreen:Bool = false; // Whether to start the game in fullscreen on desktop targets
+class Main extends Sprite
+{
+	public static var initialState:Class<FlxState> = TitleState;
+	public static var gameWidth:Int  = 1280;
+	public static var gameHeight:Int = 720;
+
+	var zoom:Float       = -1;
+	var framerate:Int    = 60;
+	var skipSplash:Bool  = true;
+	var startFullscreen:Bool = false;
 
 	public static var fpsVar:FPS;
 
-	public static var skipNextDump:Bool = false;
+	public static var skipNextDump:Bool      = false;
 	public static var forceNoVramSprites:Bool = #if (desktop && !web) false #else true #end;
 
-	public static function main():Void {
+	public static function main():Void
+	{
 		Lib.current.addChild(new Main());
 	}
 
-	public function new() {
+	public function new()
+	{
 		super();
 
-		if (stage != null) {
+		#if android
+		StorageUtil.requestPermissions();
+		#end
+
+		#if mobile
+		Sys.setCwd(StorageUtil.getStorageDirectory());
+		#end
+
+		if (stage != null)
 			init();
-		}
-		else {
+		else
 			addEventListener(Event.ADDED_TO_STAGE, init);
-		}
 	}
 
-	private function init(?E:Event):Void {
-		if (hasEventListener(Event.ADDED_TO_STAGE)) {
+	private function init(?e:Event):Void
+	{
+		if (hasEventListener(Event.ADDED_TO_STAGE))
 			removeEventListener(Event.ADDED_TO_STAGE, init);
-		}
 
 		setupGame();
 	}
 
-	public function setupGame():Void {
+	public function setupGame():Void
+	{
 		Lib.application.window.onClose.add(PlayState.onWinClose);
 
 		#if !debug
 		initialState = TitleState;
 		#end
+
 		FlxTransitionableState.skipNextTransOut = true;
+
 		#if !mobile
 		fpsVar = new FPS(10, 4, 0xFFFFFF);
-
-		if (fpsVar != null) {
-			fpsVar.visible = false;
-		}
+		if (fpsVar != null) fpsVar.visible = false;
 		#end
+
 		addChild(new FlxGame(gameWidth, gameHeight, initialState, framerate, framerate, skipSplash, startFullscreen));
 
-		FlxG.signals.preStateSwitch.add(function () {
-			if (!Main.skipNextDump) {
+		Lib.current.stage.align     = "tl";
+		Lib.current.stage.scaleMode = StageScaleMode.NO_SCALE;
+
+		#if mobile
+		LimeSystem.allowScreenTimeout = false;
+		FlxG.scaleMode = new MobileScaleMode();
+		#end
+
+		#if android
+		FlxG.android.preventDefaultKeys = [BACK];
+		#end
+
+		#if html5
+		FlxG.autoPause     = false;
+		FlxG.mouse.visible = false;
+		#end
+
+		FlxG.signals.preStateSwitch.add(function()
+		{
+			if (!Main.skipNextDump)
+			{
 				Paths.clearStoredMemory(true);
 				FlxG.bitmap.dumpCache();
 			}
 			clearMajor();
 		});
-		FlxG.signals.postStateSwitch.add(function () {
+
+		FlxG.signals.postStateSwitch.add(function()
+		{
 			Paths.clearUnusedMemory();
 			clearMajor();
 			Main.skipNextDump = false;
@@ -90,40 +133,60 @@ class Main extends Sprite {
 		#if !mobile
 		addChild(fpsVar);
 		#end
-		#if html5
-		FlxG.autoPause = false;
-		#end
+
+		_setupFocusHandlers();
 
 		FlxG.signals.gameResized.add(onResizeGame);
 	}
 
-	function onResizeGame(w:Int, h:Int) {
-		fixShaderSize(this);
-		if (FlxG.game != null) fixShaderSize(FlxG.game);
+	function _setupFocusHandlers():Void
+	{
+		Lib.current.stage.addEventListener(FocusEvent.FOCUS_IN, function(_)
+		{
+			#if mobile
+			LimeSystem.allowScreenTimeout = false;
+			#end
+			FlxG.game.focusLostFramerate = framerate;
+		});
 
-		if (FlxG.cameras == null) return;
-		for (cam in FlxG.cameras.list) {
-			@:privateAccess
-			if (cam != null && (cam._filters != null || cam._filters != []))
-				fixShaderSize(cam.flashSprite);
-		}	
+		Lib.current.stage.addEventListener(FocusEvent.FOCUS_OUT, function(_)
+		{
+			#if mobile
+			LimeSystem.allowScreenTimeout = true;
+			#end
+			FlxG.game.focusLostFramerate = 10;
+		});
 	}
 
-	function fixShaderSize(sprite:Sprite) // Shout out to Ne_Eo for bringing this to my attention
+	function onResizeGame(w:Int, h:Int):Void
 	{
-		@:privateAccess {
-			if (sprite != null)
-			{
-				sprite.__cacheBitmap = null;
-				sprite.__cacheBitmapData = null;
-				sprite.__cacheBitmapData2 = null;
-				sprite.__cacheBitmapData3 = null;
-				sprite.__cacheBitmapColorTransform = null;
-			}
+		fixShaderSize(this);
+		if (FlxG.game != null) fixShaderSize(FlxG.game);
+		if (FlxG.cameras == null) return;
+
+		for (cam in FlxG.cameras.list)
+		{
+			@:privateAccess
+			if (cam != null && cam._filters != null)
+				fixShaderSize(cam.flashSprite);
 		}
 	}
 
-	public static function clearMajor() {
+	function fixShaderSize(sprite:Sprite):Void
+	{
+		if (sprite == null) return;
+		@:privateAccess
+		{
+			sprite.__cacheBitmap              = null;
+			sprite.__cacheBitmapData          = null;
+			sprite.__cacheBitmapData2         = null;
+			sprite.__cacheBitmapData3         = null;
+			sprite.__cacheBitmapColorTransform = null;
+		}
+	}
+
+	public static function clearMajor():Void
+	{
 		#if cpp
 		Gc.run(true);
 		Gc.compact();
@@ -134,4 +197,3 @@ class Main extends Sprite {
 		#end
 	}
 }
-
