@@ -25,14 +25,18 @@ jobs:
       - name: Install Libraries
         run: |
           haxelib setup ~/haxelib
-          for lib in flixel flixel-addons flixel-ui lime openfl; do haxelib install $lib --quiet; done
+          haxelib install lime 8.0.2
+          haxelib install openfl 9.3.3
+          haxelib install flixel 5.5.0
+          haxelib run lime setup flixel
+          haxelib install flixel-addons 3.2.1
+          haxelib install flixel-ui 2.5.0
           haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git
-          haxelib git linc_luajit https://github.com/neoneurowe/linc_luajit.git
+          haxelib git linc_luajit https://github.com/AlafandyPorting/linc_luajit-0.7.3.git
           haxelib git extension-androidtools https://github.com/MAJESTY-Development/extension-androidtools.git
 
       - name: Configure Android
         run: |
-          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
           haxelib run lime setup android
           haxelib run lime config ANDROID_SDK $ANDROID_HOME
           haxelib run lime config ANDROID_NDK $ANDROID_HOME/ndk-bundle
