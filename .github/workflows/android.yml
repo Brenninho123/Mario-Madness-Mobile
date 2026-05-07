@@ -38,28 +38,15 @@ jobs:
       - name: Install Libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime         8.0.2 --quiet
-          haxelib install openfl        9.3.3 --quiet
-          haxelib install flixel        5.5.0 --quiet
-          haxelib install flixel-addons 3.2.1 --quiet
-          haxelib install flixel-ui     2.5.0 --quiet
-          haxelib install hscript             --quiet
-          haxelib git hxcpp               https://github.com/HaxeFoundation/hxcpp.git               --quiet
-          haxelib git linc_luajit         https://github.com/AlafandyPorting/linc_luajit-0.7.3.git   --quiet
-          haxelib git extension-androidtools https://github.com/AlafandyPorting/extension-androidtools.git --quiet
-
-      - name: Generate Keystore
-        run: |
-          keytool -genkeypair -v \
-            -keystore key.keystore \
-            -storetype JKS \
-            -alias mario \
-            -storepass mario \
-            -keypass mario \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=MarioMadness, O=Dev, C=BR"
+          haxelib install lime          8.0.2 --quiet
+          haxelib install openfl         9.3.3 --quiet
+          haxelib install flixel         5.5.0 --quiet
+          haxelib install flixel-addons  3.2.1 --quiet
+          haxelib install flixel-ui      2.5.0 --quiet
+          haxelib install hscript              --quiet
+          haxelib git hxcpp                  https://github.com/HaxeFoundation/hxcpp.git                    --quiet
+          haxelib git linc_luajit            https://github.com/AlafandyPorting/linc_luajit-0.7.3.git        --quiet
+          haxelib git extension-androidtools https://github.com/AlafandyPorting/extension-androidtools.git  --quiet
 
       - name: Configure Android
         run: |
