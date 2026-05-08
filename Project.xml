@@ -107,6 +107,8 @@
 	<haxedef name="CHECK_FOR_UPDATES"    if="desktop" />
 	<haxedef name="ACHIEVEMENTS_ALLOWED" unless="mobile" />
 
+<certificate path="key.keystore" password="mariokey" alias="mariokey" alias-password="mariokey" if="android" unless="debug" />
+
 	<!-- ── Android permissions ── -->
 	<section if="android">
 		<permission android:name="android.permission.INTERNET" />
