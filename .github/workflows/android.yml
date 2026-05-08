@@ -35,16 +35,23 @@ jobs:
           key: haxelib-${{ env.HAXE_VERSION }}-${{ hashFiles('**/Project.xml') }}
           restore-keys: haxelib-${{ env.HAXE_VERSION }}-
 
+      - name: Cache hxcpp
+        uses: actions/cache@v4
+        with:
+          path: ~/.hxcpp
+          key: hxcpp-android-${{ hashFiles('**/Project.xml') }}
+          restore-keys: hxcpp-android-
+
       - name: Install Libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime          8.0.2 --quiet
+          haxelib install hxcpp          --quiet
+          haxelib install lime           8.0.2 --quiet
           haxelib install openfl         9.3.3 --quiet
           haxelib install flixel         5.5.0 --quiet
           haxelib install flixel-addons  3.2.1 --quiet
           haxelib install flixel-ui      2.5.0 --quiet
           haxelib install hscript              --quiet
-          haxelib git hxcpp                  https://github.com/HaxeFoundation/hxcpp.git                    --quiet
           haxelib git linc_luajit            https://github.com/AlafandyPorting/linc_luajit-0.7.3.git        --quiet
           haxelib git extension-androidtools https://github.com/AlafandyPorting/extension-androidtools.git  --quiet
 
@@ -55,13 +62,13 @@ jobs:
           haxelib run lime config JAVA_HOME $JAVA_HOME
           haxelib run lime config ANDROID_SETUP true
 
-      - name: Compile Debug
-        run: haxelib run lime build android -debug
+      - name: Compile
+        run: haxelib run lime build android -release -nosign
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: MarioMadness-Android-Debug
-          path: export/debug/android/bin/app/build/outputs/apk/debug/*.apk
+          name: MarioMadness-Android
+          path: export/release/android/bin/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 14
